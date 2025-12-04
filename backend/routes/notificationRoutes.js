@@ -14,3 +14,4 @@ router.put('/read-all', NotificationController.markAllAsRead);
 export default router;
 
 
+

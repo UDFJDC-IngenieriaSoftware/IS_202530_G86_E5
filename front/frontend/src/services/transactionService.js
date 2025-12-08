@@ -30,6 +30,11 @@ export const transactionService = {
    * Crea una nueva transacción
    */
   async create(data) {
+
+    if(!data.owner_type || !data.owner_id){
+      throw new Error("Debe especificar owner_type y owner_id al crear una transacción");
+    }
+
     const response = await api.post('/transactions', data);
     return response.data;
   },
@@ -38,6 +43,10 @@ export const transactionService = {
    * Actualiza una transacción
    */
   async update(id, data) {
+    if(!data.owner_type || !data.owner_id){
+      throw new Error("Debe especificar owner_type y owner_id al actualizar una transacción");
+    }
+
     const response = await api.put(`/transactions/${id}`, data);
     return response.data;
   },

@@ -1,4 +1,4 @@
-import { body, query, validationResult } from 'express-validator';
+import { body, validationResult } from 'express-validator';
 import { TransactionService } from '../services/transactionService.js';
 
 /**
@@ -20,6 +20,14 @@ export class TransactionController {
         .optional()
         .isIn(['income', 'expense'])
         .withMessage('Tipo debe ser income o expense'),
+      body('owner_type')
+        .optional()
+        .isIn(['user', 'group'])
+        .withMessage('owner_type debe ser user o group'),
+      body('owner_id')
+        .optional()
+        .isInt()
+        .withMessage('owner_id debe ser un número'),
     ];
   }
 
@@ -33,6 +41,14 @@ export class TransactionController {
       body('date').optional().isISO8601(),
       body('description').optional().isString(),
       body('type').optional().isIn(['income', 'expense']),
+      body('owner_type')
+        .optional()
+        .isIn(['user', 'group'])
+        .withMessage('owner_type debe ser user o group'),
+      body('owner_id')
+        .optional()
+        .isInt()
+        .withMessage('owner_id debe ser un número'),
     ];
   }
 
@@ -145,5 +161,3 @@ export class TransactionController {
     }
   }
 }
-
-

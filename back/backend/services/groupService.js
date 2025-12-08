@@ -47,9 +47,8 @@ export class GroupService {
       );
 
     // Obtener estadísticas agregadas del grupo
-    const memberIds = members.map((m) => m.user_id);
     const transactions = await db('transactions')
-  .whereIn('transactions.user_id', memberIds) // ✔ CORREGIDO
+  .where({owner_type: 'group', owner_id: id}) // ✔ CORREGIDO
   .join('categories', 'transactions.category_id', 'categories.id')
   .select(
     'transactions.*',

@@ -2,6 +2,9 @@
   padding: 20px;
 }
 
+/* =======================
+   HEADER
+======================= */
 .page-header {
   display: flex;
   justify-content: space-between;
@@ -32,6 +35,9 @@
   background: #5568d3;
 }
 
+/* =======================
+   LISTA DE TRANSACCIONES
+======================= */
 .transactions-list {
   display: flex;
   flex-direction: column;
@@ -140,6 +146,9 @@
   background: #dc2626;
 }
 
+/* =======================
+   MODAL
+======================= */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -168,6 +177,9 @@
   color: #333;
 }
 
+/* =======================
+   FORMULARIO
+======================= */
 .form-group {
   margin-bottom: 20px;
 }
@@ -195,6 +207,27 @@
   border-color: #667eea;
 }
 
+/* ===== SELECTOR "TRANSACCIÓN PARA" (RADIOS O SELECT) ===== */
+
+.radio-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+}
+
+.radio-group-list {
+  margin-left: 15px;
+  margin-top: 8px;
+}
+
+.radio-group-list .radio-option label {
+  font-weight: 400;
+}
+
+/* =======================
+   ACCIONES DEL FORMULARIO
+======================= */
 .form-actions {
   display: flex;
   gap: 10px;
@@ -217,6 +250,9 @@
   background: #d0d0d0;
 }
 
+/* =======================
+   OTROS
+======================= */
 .no-data {
   text-align: center;
   color: #999;
@@ -229,6 +265,9 @@
   color: #666;
 }
 
+/* =======================
+   RESPONSIVE
+======================= */
 @media (max-width: 768px) {
   .transaction-card {
     flex-direction: column;
@@ -241,5 +280,3 @@
     justify-content: space-between;
   }
 }
-
-

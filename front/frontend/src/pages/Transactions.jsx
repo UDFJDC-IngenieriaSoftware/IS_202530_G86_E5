@@ -2,17 +2,29 @@ import { useState, useEffect } from 'react';
 import { transactionService } from '../services/transactionService.js';
 import { categoryService } from '../services/categoryService.js';
 import { getSocket } from '../config/socket.js';
+import { authService } from "../services/authService.js";
+import { groupService } from "../services/groupService.js";
 import './Transactions.css';
 
 /**
  * Página de gestión de transacciones
  */
 export const Transactions = () => {
+  const currentUser = authService.getCurrentUser();
+
   const [transactions, setTransactions] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [groups, setGroups] = useState([]);
+
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState(null);
+
+  // CONTROL: owner_type y owner_id
+  const [ownerType, setOwnerType] = useState("user");
+  const [ownerId, setOwnerId] = useState(currentUser?.id || null);
+
+  // FORM DATA
   const [formData, setFormData] = useState({
     category_id: '',
     amount: '',
@@ -23,12 +35,12 @@ export const Transactions = () => {
 
   useEffect(() => {
     loadData();
+    loadGroups();
 
-    // Socket.IO para actualizaciones en tiempo real
     const socket = getSocket();
-    socket.on('transaction:created', handleTransactionUpdate);
-    socket.on('transaction:updated', handleTransactionUpdate);
-    socket.on('transaction:deleted', handleTransactionUpdate);
+    socket.on('transaction:created', loadTransactions);
+    socket.on('transaction:updated', loadTransactions);
+    socket.on('transaction:deleted', loadTransactions);
 
     return () => {
       socket.off('transaction:created');
@@ -37,8 +49,13 @@ export const Transactions = () => {
     };
   }, []);
 
-  const handleTransactionUpdate = () => {
-    loadTransactions();
+  const loadGroups = async () => {
+    try {
+      const data = await groupService.getAll();
+      setGroups(data);
+    } catch (error) {
+      console.error('Error cargando grupos:', error);
+    }
   };
 
   const loadData = async () => {
@@ -48,6 +65,7 @@ export const Transactions = () => {
         transactionService.getAll(),
         categoryService.getAll(),
       ]);
+
       setTransactions(transactionsData);
       setCategories(categoriesData);
     } catch (error) {
@@ -68,16 +86,25 @@ export const Transactions = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    const payload = {
+      ...formData,
+      owner_type: ownerType,
+      owner_id: ownerId,
+    };
+
     try {
       if (editingTransaction) {
-        await transactionService.update(editingTransaction.id, formData);
+        await transactionService.update(editingTransaction.id, payload);
       } else {
-        await transactionService.create(formData);
+        await transactionService.create(payload);
       }
+
       setShowModal(false);
       setEditingTransaction(null);
       resetForm();
-      await loadTransactions();
+      loadTransactions();
+
     } catch (error) {
       console.error('Error guardando transacción:', error);
       alert(error.response?.data?.error || 'Error al guardar transacción');
@@ -86,6 +113,7 @@ export const Transactions = () => {
 
   const handleEdit = (transaction) => {
     setEditingTransaction(transaction);
+
     setFormData({
       category_id: transaction.category_id,
       amount: transaction.amount,
@@ -93,6 +121,10 @@ export const Transactions = () => {
       description: transaction.description || '',
       type: transaction.type,
     });
+
+    setOwnerType(transaction.owner_type);
+    setOwnerId(transaction.owner_id);
+
     setShowModal(true);
   };
 
@@ -101,7 +133,7 @@ export const Transactions = () => {
 
     try {
       await transactionService.delete(id);
-      await loadTransactions();
+      loadTransactions();
     } catch (error) {
       console.error('Error eliminando transacción:', error);
       alert('Error al eliminar transacción');
@@ -116,15 +148,16 @@ export const Transactions = () => {
       description: '',
       type: 'expense',
     });
+
+    setOwnerType("user");
+    setOwnerId(currentUser?.id || null);
   };
 
   const filteredCategories = categories.filter(
     (cat) => cat.type === formData.type
   );
 
-  if (loading) {
-    return <div className="loading">Cargando...</div>;
-  }
+  if (loading) return <div className="loading">Cargando...</div>;
 
   return (
     <div className="transactions-page">
@@ -156,6 +189,7 @@ export const Transactions = () => {
                   ></span>
                   <span>{transaction.category_name}</span>
                 </div>
+
                 <div className="transaction-details">
                   <p className="transaction-description">
                     {transaction.description || 'Sin descripción'}
@@ -165,6 +199,7 @@ export const Transactions = () => {
                   </p>
                 </div>
               </div>
+
               <div className="transaction-amount">
                 <span
                   className={`amount ${
@@ -177,6 +212,7 @@ export const Transactions = () => {
                     maximumFractionDigits: 2,
                   })}
                 </span>
+
                 <div className="transaction-actions">
                   <button
                     className="btn-edit"
@@ -200,18 +236,42 @@ export const Transactions = () => {
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <h2>
-              {editingTransaction ? 'Editar' : 'Nueva'} Transacción
-            </h2>
+            <h2>{editingTransaction ? 'Editar' : 'Nueva'} Transacción</h2>
+
             <form onSubmit={handleSubmit}>
+
+              {/* SELECTOR OWNER */}
+              <div className="form-group">
+                <label>A donde?</label>
+
+                <select
+                  value={`${ownerType}:${ownerId}`}
+                  onChange={(e) => {
+                    const [type, id] = e.target.value.split(':');
+                    setOwnerType(type);
+                    setOwnerId(Number(id));
+                  }}
+                >
+                  <option value={`user:${currentUser.id}`}>
+                    Mis movimientos
+                  </option>
+
+                  {groups.map((g) => (
+                    <option key={g.id} value={`group:${g.id}`}>
+                      {g.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* RESTO DEL FORM */}
               <div className="form-group">
                 <label>Tipo</label>
                 <select
                   value={formData.type}
-                  onChange={(e) => {
-                    setFormData({ ...formData, type: e.target.value, category_id: '' });
-                  }}
-                  required
+                  onChange={(e) =>
+                    setFormData({ ...formData, type: e.target.value, category_id: '' })
+                  }
                 >
                   <option value="expense">Gasto</option>
                   <option value="income">Ingreso</option>
@@ -286,10 +346,12 @@ export const Transactions = () => {
                 >
                   Cancelar
                 </button>
+
                 <button type="submit" className="btn-primary">
                   {editingTransaction ? 'Actualizar' : 'Crear'}
                 </button>
               </div>
+
             </form>
           </div>
         </div>

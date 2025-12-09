@@ -58,8 +58,10 @@ export class TransactionController {
   static async getAll(req, res, next) {
     try {
       const { owner_type, owner_id, startDate, endDate, type, category_id } = req.query;
+      
+      // Si no hay owner_type, traer TODAS (user + groups)
       const data = await transactionService.getAll(req.user.id, {
-        owner_type,
+        owner_type: owner_type || undefined, // undefined = sin filtro
         owner_id,
         startDate,
         endDate,

@@ -216,19 +216,26 @@ export class TransactionService {
   static async getAll(userId, { owner_type, owner_id, startDate, endDate, type, category_id } = {}) {
     const applyOwnerFilter = (qb, owner_type, owner_id) => {
       if (owner_type === 'group' && owner_id) {
-        qb.where({ owner_type: 'group', owner_id });
-      } else {
-        qb.where({ owner_type: 'user' });
+        qb.where({ 'transactions.owner_type': 'group', 'transactions.owner_id': owner_id });
+      } else if (owner_type === 'group') {
+        qb.where({ 'transactions.owner_type': 'group' }); // Sin owner_id, trae TODOS los grupos
+      } else if (owner_type === 'user') {
+        qb.where({ 'transactions.owner_type': 'user' });
       }
     };
 
     const query = db('transactions')
       .where('transactions.user_id', userId)
       .leftJoin('categories', 'transactions.category_id', 'categories.id')
+      .leftJoin('groups', function () {
+        this.on('transactions.owner_id', '=', 'groups.id')
+          .andOn('transactions.owner_type', '=', db.raw('?', ['group']));
+      })
       .select(
         'transactions.*',
         'categories.name as category_name',
-        'categories.color as category_color'
+        'categories.color as category_color',
+        'groups.name as owner_group_name'
       )
       .orderBy('transactions.date', 'desc');
 

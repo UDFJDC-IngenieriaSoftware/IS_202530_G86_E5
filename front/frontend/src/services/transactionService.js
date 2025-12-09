@@ -5,7 +5,8 @@ import api from '../config/api.js';
  */
 export const transactionService = {
   /**
-   * Obtiene todas las transacciones
+   * Lista todas las transacciones con filtros opcionales
+   * filtros: { startDate, endDate, type, categoryId, owner_type, owner_id }
    */
   async getAll(filters = {}) {
     const params = {
@@ -16,7 +17,6 @@ export const transactionService = {
       owner_type: filters.owner_type,
       owner_id: filters.owner_id,
     };
-
     const response = await api.get('/transactions', { params });
     return response.data;
   },
@@ -36,7 +36,6 @@ export const transactionService = {
     if (!data.owner_type || !data.owner_id) {
       throw new Error('Debe especificar owner_type y owner_id al crear una transacción');
     }
-
     const response = await api.post('/transactions', data);
     return response.data;
   },
@@ -48,7 +47,6 @@ export const transactionService = {
     if (!data.owner_type || !data.owner_id) {
       throw new Error('Debe especificar owner_type y owner_id al actualizar una transacción');
     }
-
     const response = await api.put(`/transactions/${id}`, data);
     return response.data;
   },
@@ -61,5 +59,7 @@ export const transactionService = {
     return response.data;
   },
 };
+
+export default transactionService;
 
 

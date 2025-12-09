@@ -40,12 +40,18 @@
 /* =======================
    FILTROS
 ======================= */
+.tx-filters-container {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  margin: 16px 0 20px;
+  flex-wrap: wrap;
+}
+
 .tx-filters {
   display: flex;
   gap: 12px;
   align-items: center;
-  flex-wrap: wrap;
-  margin: 16px 0 20px;
   padding: 14px;
   background: #ffffff;
   border: 1px solid #e2e8f0;
@@ -66,14 +72,52 @@
   min-width: 200px;
   font-size: 14px;
   cursor: pointer;
-  transition: all 0.2s ease;
   color: #0f172a;
+  transition: all 0.2s ease;
 }
 
 .tx-filters select:focus {
   outline: none;
   border-color: #2563eb;
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.tx-sort-filters {
+  padding: 12px 14px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+}
+
+.tx-sort-filters label {
+  font-weight: 600;
+  color: #1f2937;
+  font-size: 14px;
+  display: block;
+  margin-bottom: 10px;
+}
+
+.sort-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.sort-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 13px;
+  color: #374151;
+}
+
+.sort-checkbox input[type="radio"] {
+  cursor: pointer;
+  accent-color: #2563eb;
 }
 
 /* =======================

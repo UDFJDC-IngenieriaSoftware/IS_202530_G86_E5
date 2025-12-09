@@ -14,7 +14,10 @@ export const Transactions = () => {
 
   const [transactions, setTransactions] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [filterMode, setFilterMode] = useState('all');
+  const [sortBy, setSortBy] = useState('date'); // date | amount-desc | amount-asc | income | expense | category-asc | owner-type
   const [groups, setGroups] = useState([]);
+  const categoryRefs = useRef({});
 
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -33,10 +36,59 @@ export const Transactions = () => {
     type: 'expense',
   });
 
-  const [filterMode, setFilterMode] = useState('all'); // all | user | groups
+  const buildParams = () => {
+    if (filterMode === 'user') return { owner_type: 'user' };
+    if (filterMode === 'groups') return { owner_type: 'group' };
+    return {};
+  };
 
-  const categoryRefs = useRef({});
-  const infoContainerRef = useRef(null);
+  const groupAndOrder = (list) => {
+    let filtered = [...list];
+
+    // FILTRAR por tipo
+    if (sortBy === 'income') {
+      filtered = filtered.filter(t => t.type === 'income');
+    } else if (sortBy === 'expense') {
+      filtered = filtered.filter(t => t.type === 'expense');
+    }
+
+    // ORDENAR
+    if (sortBy === 'amount-desc') {
+      filtered.sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount));
+    } else if (sortBy === 'amount-asc') {
+      filtered.sort((a, b) => Math.abs(a.amount) - Math.abs(b.amount));
+    } else if (sortBy === 'category-asc') {
+      filtered.sort((a, b) => (a.category_name || '').localeCompare(b.category_name || ''));
+    } else if (sortBy === 'owner-type') {
+      filtered.sort((a, b) => {
+        if (a.owner_type === 'user' && b.owner_type === 'group') return -1;
+        if (a.owner_type === 'group' && b.owner_type === 'user') return 1;
+        return (a.owner_group_name || '').localeCompare(b.owner_group_name || '');
+      });
+    } else {
+      // date (default)
+      filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
+    }
+
+    // AGRUPAR
+    const userTx = filtered.filter(t => t.owner_type === 'user');
+    const groupTx = filtered.filter(t => t.owner_type === 'group');
+
+    const sections = [];
+    if (userTx.length) sections.push({ label: 'Mis movimientos', items: userTx });
+
+    let current = null;
+    groupTx.forEach(tx => {
+      const name = tx.owner_group_name || `Grupo ${tx.owner_id}`;
+      if (!current || current.label !== name) {
+        current = { label: `GRP: ${name}`, items: [] };
+        sections.push(current);
+      }
+      current.items.push(tx);
+    });
+
+    return sections;
+  };
 
   useEffect(() => {
     loadCategories();
@@ -56,10 +108,9 @@ export const Transactions = () => {
 
   useEffect(() => {
     loadTransactions();
-  }, [filterMode]);
+  }, [filterMode, sortBy]);
 
   useEffect(() => {
-    // Pequeño delay para asegurar que el DOM esté renderizado
     const timer = setTimeout(() => {
       let maxWidth = 0;
 
@@ -71,7 +122,6 @@ export const Transactions = () => {
           const badge = container.querySelector('.tx-owner-badge');
 
           if (category && badge) {
-            // Resetear temporalmente para obtener el ancho natural
             category.style.width = 'auto';
             badge.style.width = 'auto';
 
@@ -118,41 +168,6 @@ export const Transactions = () => {
     } catch (error) {
       console.error('Error cargando categorías:', error);
     }
-  };
-
-  const buildParams = () => {
-    if (filterMode === 'user') return { owner_type: 'user' };
-    if (filterMode === 'groups') return { owner_type: 'group' }; // Sin owner_id
-    return {}; // all
-  };
-
-  const groupAndOrder = (list) => {
-    const userTx = list
-      .filter(t => t.owner_type === 'user')
-      .sort((a, b) => new Date(b.date) - new Date(a.date));
-
-    const groupTx = list
-      .filter(t => t.owner_type === 'group')
-      .sort(
-        (a, b) =>
-          (a.owner_group_name || '').localeCompare(b.owner_group_name || '') ||
-          (new Date(b.date) - new Date(a.date))
-      );
-
-    const sections = [];
-    if (userTx.length) sections.push({ label: 'Mis movimientos', items: userTx });
-
-    let current = null;
-    groupTx.forEach(tx => {
-      const name = tx.owner_group_name || `Grupo ${tx.owner_id}`;
-      if (!current || current.label !== name) {
-        current = { label: `GRP: ${name}`, items: [] };
-        sections.push(current);
-      }
-      current.items.push(tx);
-    });
-
-    return sections;
   };
 
   const loadTransactions = async () => {
@@ -262,16 +277,30 @@ export const Transactions = () => {
       </div>
 
       {/* Filtros */}
-      <div className="tx-filters">
-        {/* ...otros filtros existentes... */}
-        <label>Mostrar:</label>
-        <select value={filterMode} onChange={(e) => setFilterMode(e.target.value)}>
-          <option value="all">Todas las transacciones</option>
-          <option value="user">Solo mis movimientos</option>
-          <option value="groups">Solo movimientos en grupos</option>
-        </select>
+      <div className="tx-filters-container">
+        <div className="tx-filters">
+          <label>Mostrar:</label>
+          <select value={filterMode} onChange={(e) => setFilterMode(e.target.value)}>
+            <option value="all">Todas las transacciones</option>
+            <option value="user">Solo mis movimientos</option>
+            <option value="groups">Solo movimientos en grupos</option>
+          </select>
+        </div>
+
+        <div className="tx-filters">
+          <label>Ordenar por:</label>
+          <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+            <option value="date">Fecha (más reciente)</option>
+            <option value="amount-desc">Monto (mayor a menor)</option>
+            <option value="amount-asc">Monto (menor a mayor)</option>
+            <option value="income">Solo ingresos</option>
+            <option value="expense">Solo egresos</option>
+            <option value="category-asc">Alfabético (categoría)</option>
+          </select>
+        </div>
       </div>
 
+      {/* Transacciones */}
       {loading ? (
         <div className="loading">Cargando...</div>
       ) : !Array.isArray(transactions) || transactions.length === 0 ? (
@@ -284,10 +313,7 @@ export const Transactions = () => {
               <div key={tx.id} className="transaction-card">
                 <div 
                   className="transaction-info"
-                  ref={(el) => {
-                    categoryRefs.current[tx.id] = el;
-                    if (!infoContainerRef.current) infoContainerRef.current = el;
-                  }}
+                  ref={(el) => categoryRefs.current[tx.id] = el}
                 >
                   <div className="transaction-category">
                     <span
@@ -314,15 +340,6 @@ export const Transactions = () => {
                 </div>
 
                 <div className="transaction-right">
-                  <div className="transaction-actions">
-                    <button className="btn-delete" onClick={() => handleDelete(tx.id)}>
-                      Eliminar
-                    </button>
-                    <button className="btn-edit" onClick={() => handleEdit(tx)}>
-                      Editar
-                    </button>
-                  </div>
-
                   <div className="transaction-amount">
                     <span className={`amount ${tx.type === 'income' ? 'positive' : 'negative'}`}>
                       {tx.type === 'income' ? '+' : '-'}$
@@ -331,6 +348,15 @@ export const Transactions = () => {
                         maximumFractionDigits: 2,
                       })}
                     </span>
+                  </div>
+
+                  <div className="transaction-actions">
+                    <button className="btn-delete" onClick={() => handleDelete(tx.id)}>
+                      Eliminar
+                    </button>
+                    <button className="btn-edit" onClick={() => handleEdit(tx)}>
+                      Editar
+                    </button>
                   </div>
                 </div>
               </div>

@@ -7,7 +7,15 @@ export class StatsService {
   /**
    * Obtiene resumen de transacciones por período
    */
-  static async getSummary(userId, period = 'month') {
+  static async getSummary(userId, period = 'month', { owner_type, owner_id } = {}) {
+    const applyOwnerFilter = (qb, owner_type, owner_id) => {
+      if (owner_type === 'group' && owner_id) {
+        qb.where({ owner_type: 'group', owner_id });
+      } else {
+        qb.where({ owner_type: 'user' });
+      }
+    };
+
     let dateFilter;
     const now = new Date();
 
@@ -31,8 +39,10 @@ export class StatsService {
         dateFilter = new Date(now.getFullYear(), now.getMonth(), 1);
     }
 
-    const transactions = await db('transactions')
-      .where({ user_id: userId })
+    const q = db('transactions').where('transactions.user_id', userId);
+    applyOwnerFilter(q, owner_type, owner_id);
+
+    const transactions = await q
       .where('date', '>=', dateFilter.toISOString().split('T')[0])
       .select('type', 'amount', 'date');
 
@@ -67,10 +77,19 @@ export class StatsService {
   /**
    * Obtiene totales acumulados
    */
-  static async getTotals(userId) {
-    const transactions = await db('transactions')
-      .where({ user_id: userId })
-      .select('type', 'amount');
+  static async getTotals(userId, { owner_type, owner_id } = {}) {
+    const applyOwnerFilter = (qb, owner_type, owner_id) => {
+      if (owner_type === 'group' && owner_id) {
+        qb.where({ owner_type: 'group', owner_id });
+      } else {
+        qb.where({ owner_type: 'user' });
+      }
+    };
+
+    const q = db('transactions').where('transactions.user_id', userId);
+    applyOwnerFilter(q, owner_type, owner_id);
+
+    const transactions = await q.select('type', 'amount');
 
     let totalIncome = 0;
     let totalExpense = 0;
@@ -94,7 +113,15 @@ export class StatsService {
   /**
    * Obtiene estadísticas por categoría
    */
-  static async getByCategory(userId, period = 'month') {
+  static async getByCategory(userId, period = 'month', { owner_type, owner_id } = {}) {
+    const applyOwnerFilter = (qb, owner_type, owner_id) => {
+      if (owner_type === 'group' && owner_id) {
+        qb.where({ owner_type: 'group', owner_id });
+      } else {
+        qb.where({ owner_type: 'user' });
+      }
+    };
+
     let dateFilter;
     const now = new Date();
 
@@ -109,8 +136,10 @@ export class StatsService {
         dateFilter = new Date(now.getFullYear(), now.getMonth(), 1);
     }
 
-    const transactions = await db('transactions')
-      .where({ 'transactions.user_id': userId })
+    const q = db('transactions').where('transactions.user_id', userId);
+    applyOwnerFilter(q, owner_type, owner_id);
+
+    const transactions = await q
       .where('transactions.date', '>=', dateFilter.toISOString().split('T')[0])
       .join('categories', 'transactions.category_id', 'categories.id')
       .select(

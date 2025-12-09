@@ -209,6 +209,49 @@ export class TransactionService {
 
     return transaction;
   }
+
+  /**
+   * Obtiene todas las transacciones de un usuario
+   */
+  static async getAll(userId, { owner_type, owner_id, startDate, endDate, type, category_id } = {}) {
+    const applyOwnerFilter = (qb, owner_type, owner_id) => {
+      if (owner_type === 'group' && owner_id) {
+        qb.where({ owner_type: 'group', owner_id });
+      } else {
+        qb.where({ owner_type: 'user' });
+      }
+    };
+
+    const query = db('transactions')
+      .where('transactions.user_id', userId)
+      .leftJoin('categories', 'transactions.category_id', 'categories.id')
+      .select(
+        'transactions.*',
+        'categories.name as category_name',
+        'categories.color as category_color'
+      )
+      .orderBy('transactions.date', 'desc');
+
+    applyOwnerFilter(query, owner_type, owner_id);
+
+    if (startDate) query.where('transactions.date', '>=', startDate);
+    if (endDate) query.where('transactions.date', '<=', endDate);
+    if (type) query.where('transactions.type', type);
+    if (category_id) query.where('transactions.category_id', category_id);
+
+    return await query;
+  }
 }
+
+export const transactionService = {
+  getAll: TransactionService.getAll,
+  getByUserId: TransactionService.getByUserId,
+  getById: TransactionService.getById,
+  create: TransactionService.create,
+  update: TransactionService.update,
+  delete: TransactionService.delete,
+};
+
+export default transactionService;
 
 

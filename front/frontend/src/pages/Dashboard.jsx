@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { statsService } from '../services/statsService.js';
+import { groupService } from '../services/groupService.js';
 import { getSocket } from '../config/socket.js';
 import { Line, Doughnut } from 'react-chartjs-2';
 import {
@@ -35,38 +36,60 @@ export const Dashboard = () => {
   const [summary, setSummary] = useState({ data: [] });
   const [period, setPeriod] = useState('month');
   const [loading, setLoading] = useState(true);
+  const [ownerType, setOwnerType] = useState('user');
+  const [ownerId, setOwnerId] = useState(null);
+  const [groups, setGroups] = useState([]);
+
+  useEffect(() => {
+    groupService.getAll().then(setGroups).catch(console.error);
+  }, []);
 
   useEffect(() => {
     loadData();
 
     // Configurar Socket.IO para actualizaciones en tiempo real
     const socket = getSocket();
-    
-    socket.on('transaction:created', () => {
-      loadData();
-    });
+    const refresh = () => loadData();
 
-    socket.on('transaction:updated', () => {
-      loadData();
-    });
-
-    socket.on('transaction:deleted', () => {
-      loadData();
-    });
+    socket.on('transaction:created', refresh);
+    socket.on('transaction:updated', refresh);
+    socket.on('transaction:deleted', refresh);
 
     return () => {
-      socket.off('transaction:created');
-      socket.off('transaction:updated');
-      socket.off('transaction:deleted');
+      socket.off('transaction:created', refresh);
+      socket.off('transaction:updated', refresh);
+      socket.off('transaction:deleted', refresh);
     };
-  }, [period]);
+  }, [period, ownerType, ownerId]);
+
+  const buildParams = () => {
+    if (ownerType === 'group' && ownerId) {
+      return { owner_type: 'group', owner_id: ownerId };
+    }
+    // Solo aplicar filtro de usuario cuando realmente es 'user'
+    if (ownerType === 'user') {
+      return { owner_type: 'user' };
+    }
+    // Si es grupo pero sin ID, no cargar datos
+    return null;
+  };
 
   const loadData = async () => {
     try {
       setLoading(true);
+      const params = buildParams();
+      
+      // No cargar si es grupo sin seleccionar
+      if (params === null) {
+        setTotals({ totalIncome: 0, totalExpense: 0, balance: 0 });
+        setSummary({ data: [] });
+        setLoading(false);
+        return;
+      }
+      
       const [totalsData, summaryData] = await Promise.all([
-        statsService.getTotals(),
-        statsService.getSummary(period),
+        statsService.getTotals(params),
+        statsService.getSummary(period, params),
       ]);
       setTotals(totalsData);
       setSummary(summaryData);
@@ -122,32 +145,61 @@ export const Dashboard = () => {
     <div className="dashboard">
       <h1>Dashboard Financiero</h1>
 
-      {/* Selector de período */}
-      <div className="period-selector">
-        <button
-          className={period === 'day' ? 'active' : ''}
-          onClick={() => setPeriod('day')}
+      {/* Selector de propietario */}
+      <div className="filter-row">
+        <label>Ver transacciones de:</label>
+        <select
+          value={ownerType}
+          onChange={(e) => {
+            setOwnerType(e.target.value);
+            setOwnerId(null);
+          }}
         >
-          Día
-        </button>
-        <button
-          className={period === 'week' ? 'active' : ''}
-          onClick={() => setPeriod('week')}
-        >
-          Semana
-        </button>
-        <button
-          className={period === 'month' ? 'active' : ''}
-          onClick={() => setPeriod('month')}
-        >
-          Mes
-        </button>
-        <button
-          className={period === 'year' ? 'active' : ''}
-          onClick={() => setPeriod('year')}
-        >
-          Año
-        </button>
+          <option value="user">Mis movimientos</option>
+          <option value="group">Movimientos de grupo</option>
+        </select>
+
+        {ownerType === 'group' && (
+          <select
+            value={ownerId ?? ''}
+            onChange={(e) => setOwnerId(e.target.value)}
+          >
+            <option value="">-- Selecciona un grupo --</option>
+            {groups.map((g) => (
+              <option key={g.id} value={g.id}>
+                {g.name}
+              </option>
+            ))}
+          </select>
+        )}
+
+        {/* Selector de período */}
+        <div className="period-selector">
+          <button
+            className={period === 'day' ? 'active' : ''}
+            onClick={() => setPeriod('day')}
+          >
+            Día
+          </button>
+          <button
+            className={period === 'week' ? 'active' : ''}
+            onClick={() => setPeriod('week')}
+          >
+            Semana
+          </button>
+          <button
+            className={period === 'month' ? 'active' : ''}
+            onClick={() => setPeriod('month')}
+          >
+            Mes
+          </button>
+          <button
+            className={period === 'year' ? 'active' : ''}
+            onClick={() => setPeriod('year')}
+          >
+            Año
+          </button>
+        </div>
       </div>
 
       {/* Totales */}

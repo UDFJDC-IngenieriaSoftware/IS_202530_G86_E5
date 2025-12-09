@@ -1,5 +1,5 @@
 import { body, validationResult } from 'express-validator';
-import { TransactionService } from '../services/transactionService.js';
+import { transactionService } from '../services/transactionService.js';
 
 /**
  * Controlador de transacciones
@@ -57,19 +57,16 @@ export class TransactionController {
    */
   static async getAll(req, res, next) {
     try {
-      const filters = {
-        startDate: req.query.startDate,
-        endDate: req.query.endDate,
-        type: req.query.type,
-        categoryId: req.query.category_id,
-      };
-
-      const transactions = await TransactionService.getByUserId(
-        req.user.id,
-        filters
-      );
-
-      res.json(transactions);
+      const { owner_type, owner_id, startDate, endDate, type, category_id } = req.query;
+      const data = await transactionService.getAll(req.user.id, {
+        owner_type,
+        owner_id,
+        startDate,
+        endDate,
+        type,
+        category_id,
+      });
+      res.json(data);
     } catch (error) {
       next(error);
     }
@@ -80,7 +77,7 @@ export class TransactionController {
    */
   static async getById(req, res, next) {
     try {
-      const transaction = await TransactionService.getById(
+      const transaction = await transactionService.getById(
         req.params.id,
         req.user.id
       );
@@ -100,7 +97,7 @@ export class TransactionController {
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const transaction = await TransactionService.create(req.user.id, req.body);
+      const transaction = await transactionService.create(req.user.id, req.body);
 
       // Emitir evento Socket.IO
       req.io.emit('transaction:created', {
@@ -124,7 +121,7 @@ export class TransactionController {
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const transaction = await TransactionService.update(
+      const transaction = await transactionService.update(
         req.params.id,
         req.user.id,
         req.body
@@ -147,7 +144,7 @@ export class TransactionController {
    */
   static async delete(req, res, next) {
     try {
-      await TransactionService.delete(req.params.id, req.user.id);
+      await transactionService.delete(req.params.id, req.user.id);
 
       // Emitir evento Socket.IO
       req.io.emit('transaction:deleted', {

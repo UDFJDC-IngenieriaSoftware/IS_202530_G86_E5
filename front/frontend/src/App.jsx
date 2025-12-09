@@ -8,6 +8,7 @@ import { Dashboard } from './pages/Dashboard.jsx';
 import { Transactions } from './pages/Transactions.jsx';
 import { Categories } from './pages/Categories.jsx';
 import { Groups } from './pages/Groups.jsx';
+import { SavingGoals } from './pages/SavingGoals.jsx';
 import { initSocket } from './config/socket.js';
 import { authService } from './services/authService.js';
 import './App.css';
@@ -68,6 +69,16 @@ function App() {
             <ProtectedRoute>
               <Layout>
                 <Groups />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/savings"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <SavingGoals />
               </Layout>
             </ProtectedRoute>
           }

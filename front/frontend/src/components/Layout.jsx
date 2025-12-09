@@ -25,6 +25,7 @@ export const Layout = ({ children }) => {
           <Link to="/transactions">Transacciones</Link>
           <Link to="/categories">Categorías</Link>
           <Link to="/groups">Grupos</Link>
+          <Link to="/savings" className="nav-link">Metas de Ahorro</Link>
         </div>
         <div className="nav-user">
           <span>Hola, {user?.name}</span>

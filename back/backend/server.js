@@ -12,6 +12,7 @@ import categoryRoutes from './routes/categoryRoutes.js';
 import statsRoutes from './routes/statsRoutes.js';
 import groupRoutes from './routes/groupRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
+import savingGoalRoutes from './routes/savingGoalRoutes.js';
 
 // Cargar variables de entorno
 dotenv.config();
@@ -43,11 +44,12 @@ app.use(express.urlencoded({ extended: true }));
 
 // Rutas
 app.use('/api/auth', authRoutes);
-app.use('/api/transactions', transactionRoutes);
 app.use('/api/categories', categoryRoutes);
-app.use('/api/stats', statsRoutes);
+app.use('/api/transactions', transactionRoutes);
 app.use('/api/groups', groupRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/stats', statsRoutes);
+app.use('/api/saving-goals', savingGoalRoutes);
 
 // Ruta de salud
 app.get('/api/health', (req, res) => {
